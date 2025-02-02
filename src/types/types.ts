@@ -16,14 +16,6 @@ export interface VerifyOTPInput {
   otp: string;
 }
 
-export interface LocationInput {
-  latitude: number;
-  longitude: number;
-  city?: string;
-  state?: string;
-  country?: string;
-}
-
 export interface ProfileUpdateInput {
   name?: string;
   gender?: "MALE" | "FEMALE" | "NON_BINARY" | "OTHER";
@@ -32,18 +24,9 @@ export interface ProfileUpdateInput {
   avatar?: string;
   aesthetic?: AestheticType[];
   photos?: string[];
-  latitude?: number;
-  longitude?: number;
-  city?: string;
-  state?: string;
-  country?: string;
 }
 
 export interface PreferenceUpdateInput {
-  interestedIn?: ("MALE" | "FEMALE" | "NON_BINARY" | "OTHER")[];
-  ageMin?: number;
-  ageMax?: number;
-  distance?: number;
   aesthetics?: AestheticType[];
   clothingTypes?: string[];
 }

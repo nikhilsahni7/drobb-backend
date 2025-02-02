@@ -1,12 +1,7 @@
 import type { Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import type {
-  ProfileUpdateInput,
-  PreferenceUpdateInput,
-  LocationInput,
-} from "../types/auth";
+import type { ProfileUpdateInput, PreferenceUpdateInput } from "../types/types";
 import type { AuthRequest } from "../middleware/auth.middleware";
-import { calculateDistance } from "../utils/location.utils";
 
 const prisma = new PrismaClient();
 
@@ -80,99 +75,6 @@ export class ProfileController {
       });
     } catch (error) {
       console.error("Get profile error:", error);
-      return res.status(500).json({ message: "Internal server error" });
-    }
-  }
-
-  // Update location
-  public async updateLocation(
-    req: AuthRequest,
-    res: Response
-  ): Promise<Response> {
-    try {
-      const userId = req.user?.userId;
-      const locationData: LocationInput = req.body;
-
-      const updatedProfile = await prisma.profile.update({
-        where: { userId },
-        data: {
-          latitude: locationData.latitude,
-          longitude: locationData.longitude,
-          city: locationData.city,
-          state: locationData.state,
-          country: locationData.country,
-          lastLocationUpdate: new Date(),
-        },
-      });
-
-      return res.json({ profile: updatedProfile });
-    } catch (error) {
-      console.error("Location update error:", error);
-      return res.status(500).json({ message: "Internal server error" });
-    }
-  }
-
-  // Get nearby users
-  public async getNearbyUsers(
-    req: AuthRequest,
-    res: Response
-  ): Promise<Response> {
-    try {
-      const userId = req.user?.userId;
-      const maxDistance = parseInt(req.query.distance as string) || 100; // Default 100km
-
-      // Get user's location
-      const userProfile = await prisma.profile.findUnique({
-        where: { userId },
-        select: {
-          latitude: true,
-          longitude: true,
-          user: {
-            select: {
-              preferences: true,
-            },
-          },
-        },
-      });
-
-      if (!userProfile?.latitude || !userProfile?.longitude) {
-        return res.status(400).json({ message: "Location not set" });
-      }
-
-      // Get all users
-      const allProfiles = await prisma.profile.findMany({
-        where: {
-          userId: { not: userId },
-          latitude: { not: null },
-          longitude: { not: null },
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-            },
-          },
-        },
-      });
-
-      // Filter by distance
-      const nearbyUsers = allProfiles.filter((profile) => {
-        if (!profile.latitude || !profile.longitude) return false;
-
-        const distance = calculateDistance(
-          userProfile.latitude!,
-          userProfile.longitude!,
-          profile.latitude!,
-          profile.longitude!
-        );
-
-        return distance <= maxDistance;
-      });
-
-      return res.json({ users: nearbyUsers });
-    } catch (error) {
-      console.error("Get nearby users error:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   }

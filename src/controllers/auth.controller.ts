@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { Resend } from "resend";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
-import type { SignupInput, LoginInput, VerifyOTPInput } from "../types/auth";
+import type { SignupInput, LoginInput, VerifyOTPInput } from "../types/types";
 
 const prisma = new PrismaClient();
 const resend = new Resend(process.env.RESEND_API_KEY);
