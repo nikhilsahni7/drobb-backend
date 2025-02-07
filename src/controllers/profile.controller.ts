@@ -15,9 +15,16 @@ export class ProfileController {
       const userId = req.user?.userId;
       const profileData: ProfileUpdateInput = req.body;
 
-      const updatedProfile = await prisma.profile.update({
+      const updatedProfile = await prisma.profile.upsert({
         where: { userId },
-        data: profileData,
+        update: profileData,
+        create: {
+          userId: userId!,
+          ...profileData,
+          name: profileData.name || "",
+          gender: profileData.gender || "OTHER",
+          birthDate: profileData.birthDate || new Date(),
+        },
       });
 
       return res.json({ profile: updatedProfile });

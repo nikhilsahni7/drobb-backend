@@ -87,13 +87,21 @@ export class AuthController {
     }
   }
 
-  // Verify OTP
   public async verifyOTP(
     req: Request<{}, {}, VerifyOTPInput>,
     res: Response
   ): Promise<Response> {
     try {
       const { email, otp }: VerifyOTPInput = req.body;
+
+      // Find the user first
+      const user = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (!user) {
+        return res.status(400).json({ message: "User not found" });
+      }
 
       const otpRecord = await prisma.oTP.findFirst({
         where: {
@@ -114,20 +122,26 @@ export class AuthController {
         data: { verified: true },
       });
 
-      // Generate JWT token
+      // Generate JWT token with the user's ID
       const token = jwt.sign(
-        { userId: otpRecord.id },
+        { userId: user.id }, // Use the actual user ID
         process.env.JWT_SECRET!,
         { expiresIn: "7d" }
       );
 
-      return res.json({ message: "Email verified successfully", token });
+      return res.json({
+        message: "Email verified successfully",
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+        },
+      });
     } catch (error) {
       console.error("OTP verification error:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   }
-
   // Login
   public async login(
     req: Request<{}, {}, LoginInput>,
