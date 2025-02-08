@@ -3,13 +3,14 @@ import { PrismaClient, OrderStatus } from "@prisma/client";
 import type { AuthRequest } from "../middleware/auth.middleware";
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import dotenv from "dotenv";
+dotenv.config();
 
 const prisma = new PrismaClient();
 
-// Instantiate the Razorpay instance using environment variables.
 const razorpayInstance = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+  key_secret: process.env.RAZORPAY_SECRET!,
 });
 
 export class OrderController {
@@ -46,6 +47,8 @@ export class OrderController {
         receipt: `receipt_order_${new Date().getTime()}`,
       });
 
+      console.log(razorpayOrder);
+
       // Create an order record in the database
       const order = await prisma.order.create({
         data: {
@@ -76,6 +79,7 @@ export class OrderController {
       });
     } catch (error) {
       console.error("Initiate payment error:", error);
+      console.log(error);
       return res.status(500).json({ message: "Internal server error" });
     }
   }
@@ -107,7 +111,7 @@ export class OrderController {
 
       // Generate the signature using our key secret
       const generatedSignature = crypto
-        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+        .createHmac("sha256", process.env.RAZORPAY_SECRET!)
         .update(razorpay_order_id + "|" + razorpay_payment_id)
         .digest("hex");
 
@@ -146,7 +150,10 @@ export class OrderController {
     try {
       const userId = req.user?.userId;
       const orders = await prisma.order.findMany({
-        where: { userId: userId! },
+        where: {
+          userId: userId!,
+          status: OrderStatus.PAID,
+        },
         include: {
           items: { include: { product: true } },
         },
