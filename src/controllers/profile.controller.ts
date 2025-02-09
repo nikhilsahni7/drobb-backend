@@ -69,6 +69,7 @@ export class ProfileController {
         include: {
           profile: true,
           preferences: true,
+          ratings: true,
         },
       });
 

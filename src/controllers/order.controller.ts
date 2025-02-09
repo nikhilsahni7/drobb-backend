@@ -155,12 +155,47 @@ export class OrderController {
           status: OrderStatus.PAID,
         },
         include: {
-          items: { include: { product: true } },
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  description: true,
+                  price: true,
+                  images: true,
+                  aesthetic: true,
+                  category: true,
+                  size: true,
+                  inStock: true,
+                },
+              },
+            },
+          },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: {
+          createdAt: "desc",
+        },
       });
 
-      return res.json({ orders });
+      return res.json({
+        success: true,
+        orders: orders.map((order) => ({
+          id: order.id,
+          status: order.status,
+          total: order.total,
+          paymentIntent: order.paymentIntent,
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+          items: order.items.map((item) => ({
+            id: item.id,
+            quantity: item.quantity,
+            size: item.size,
+            priceAtPurchase: item.price,
+            product: item.product,
+          })),
+        })),
+      });
     } catch (error) {
       console.error("Get orders error:", error);
       return res.status(500).json({ message: "Internal server error" });

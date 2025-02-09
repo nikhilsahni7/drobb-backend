@@ -1,0 +1,53 @@
+Privacy Policy for Drobb
+Effective Date: 9th February 2025
+
+Drobb ("we," "us," or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and share your information when you use the Drobb mobile application and related services (the "Services"). By accessing or using the Services, you consent to the practices described in this policy.
+
+1. Information We Collect
+We collect the following information:
+
+Personal Information: Name, email address, phone number, date of birth, gender, billing address, shipping address, and other information you provide.
+Usage Data: Browsing history, search queries, order history, interactions with products and users, and time spent on the app.
+Device Information: Device type, operating system, unique device identifiers, IP address, and mobile network information.
+Location Information (if enabled): Location data to personalize your experience and provide location-based services.
+Payment Information: Payment details are processed by third-party processors; we do not store full payment card details.
+2. How We Use Your Information
+We use your information to:
+
+Provide and improve the Services, personalize your experience, and provide recommendations.
+Process transactions and provide customer support.
+Communicate with you about updates, promotions, and other relevant information.
+Analyze user behavior to improve our platform.
+Show you personalized ads and promote products or services.
+Comply with applicable laws and regulations.
+3. Data Sharing
+We may share your information with:
+
+Service Providers: Third-party providers who assist us with payment processing, data analytics, marketing, and customer support. These providers are contractually obligated to protect your information.
+Brands and Sellers: Information is shared with the brand or seller fulfilling your order.
+Business Partners: We may share information with partners offering relevant products or services, with your consent.
+Legal Authorities: We may disclose information if required by law or in response to a valid legal request.
+4. Data Security
+We take reasonable measures to protect your information from unauthorized access, use, or disclosure. However, no data transmission over the internet is 100% secure.
+
+5. Data Retention
+We retain your information for as long as necessary to fulfill the purposes outlined in this policy or as required by law. You may request deletion of your account and data by contacting us.
+
+6. Children's Privacy
+Our Services are not intended for children under 13. We do not knowingly collect personal information from children under 13.
+
+7. Changes to this Privacy Policy
+We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the updated policy on the Services or through other means.
+
+8. Your Rights
+You have the right to:
+
+Access and update your personal information.
+Opt out of marketing communications.
+Disable location services.
+9. Contact Us
+For questions about this Privacy Policy, please contact us at:
+customercare@drobb.in
+
+Disclaimer of Liability
+Drobb acts as a marketplace connecting buyers and sellers. We do not manufacture, sell, or control the products offered on the Services. We are not liable for any damages or losses arising from your use of the Services or your interactions with sellers, including product defects, shipping delays, or disputes
