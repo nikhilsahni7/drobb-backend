@@ -3,7 +3,13 @@ import { PrismaClient } from "@prisma/client";
 import { Resend } from "resend";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
-import type { SignupInput, LoginInput, VerifyOTPInput } from "../types/types";
+import type {
+  SignupInput,
+  LoginInput,
+  VerifyOTPInput,
+  SupplierSignupInput,
+} from "../types/types";
+import { UserRole } from "@prisma/client";
 
 const prisma = new PrismaClient();
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -29,14 +35,20 @@ export class AuthController {
     }
   }
 
-  // Signup
+  // Signup with role support
   public async signup(
-    req: Request<{}, {}, SignupInput>,
+    req: Request<{}, {}, SignupInput | SupplierSignupInput>,
     res: Response
   ): Promise<Response> {
     try {
-      const { email, password, name, gender, birthDate }: SignupInput =
-        req.body;
+      const {
+        email,
+        password,
+        name,
+        gender,
+        birthDate,
+        role = "USER",
+      } = req.body;
 
       // Check if user exists
       const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -60,19 +72,33 @@ export class AuthController {
       const hashedPassword = await bcryptjs.hash(password, 10);
 
       // Create unverified user
-      const user = await prisma.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          profile: {
-            create: {
-              name,
-              gender,
-              birthDate: new Date(birthDate),
-            },
+      const userData = {
+        email,
+        password: hashedPassword,
+        role: role === "SUPPLIER" ? UserRole.SUPPLIER : UserRole.USER,
+        profile: {
+          create: {
+            name,
+            gender,
+            birthDate: new Date(birthDate),
           },
         },
-      });
+      };
+
+      const user = await prisma.user.create({ data: userData });
+
+      // If supplier, create supplier record
+      if (role === "SUPPLIER") {
+        const supplierData = req.body as SupplierSignupInput;
+        await prisma.supplier.create({
+          data: {
+            userId: user.id,
+            businessName: supplierData.businessName,
+            address: supplierData.address,
+            phone: supplierData.phone,
+          },
+        });
+      }
 
       // Send OTP email
       await this.sendOTPEmail(email, otp);
@@ -142,7 +168,7 @@ export class AuthController {
       return res.status(500).json({ message: "Internal server error" });
     }
   }
-  // Login
+  // Login with role information
   public async login(
     req: Request<{}, {}, LoginInput>,
     res: Response
@@ -152,7 +178,7 @@ export class AuthController {
 
       const user = await prisma.user.findUnique({
         where: { email },
-        include: { profile: true },
+        include: { profile: true, supplier: true },
       });
 
       if (!user) {
@@ -165,21 +191,91 @@ export class AuthController {
         return res.status(400).json({ message: "Invalid credentials" });
       }
 
-      // Generate JWT token
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
-        expiresIn: "7d",
+      // Generate JWT token with role
+      const token = jwt.sign(
+        { userId: user.id, role: user.role },
+        process.env.JWT_SECRET!,
+        { expiresIn: "7d" }
+      );
+
+      // Return appropriate data based on role
+      const userData = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        profile: user.profile,
+      };
+
+      // Add supplier data if applicable
+      if (user.role === "SUPPLIER" && user.supplier) {
+        return res.json({
+          token,
+          user: {
+            ...userData,
+            supplier: {
+              id: user.supplier.id,
+              businessName: user.supplier.businessName,
+              approved: user.supplier.approved,
+            },
+          },
+        });
+      }
+
+      return res.json({ token, user: userData });
+    } catch (error) {
+      console.error("Login error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }
+
+  // Create admin (one-time setup, should be protected)
+  public async createAdmin(req: Request, res: Response): Promise<Response> {
+    try {
+      const { email, password, adminSecret } = req.body;
+
+      // Verify admin secret from environment variable
+      if (adminSecret !== process.env.ADMIN_SECRET) {
+        return res.status(403).json({ message: "Invalid admin secret" });
+      }
+
+      // Check if admin already exists
+      const existingAdmin = await prisma.user.findFirst({
+        where: { role: UserRole.ADMIN },
       });
 
-      return res.json({
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          profile: user.profile,
+      if (existingAdmin) {
+        return res.status(400).json({ message: "Admin already exists" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcryptjs.hash(password, 10);
+
+      // Create admin user
+      const admin = await prisma.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          role: UserRole.ADMIN,
+          profile: {
+            create: {
+              name: "Admin",
+              gender: "OTHER",
+              birthDate: new Date(),
+            },
+          },
+        },
+      });
+
+      return res.status(201).json({
+        message: "Admin created successfully",
+        admin: {
+          id: admin.id,
+          email: admin.email,
+          role: admin.role,
         },
       });
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Create admin error:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   }

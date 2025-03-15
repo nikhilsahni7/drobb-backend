@@ -1,8 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { UserRole } from "@prisma/client";
 
 export interface AuthRequest extends Request {
-  user?: { userId: string };
+  user?: {
+    userId: string;
+    role?: UserRole;
+  };
 }
 
 export const authMiddleware = (
@@ -20,11 +24,31 @@ export const authMiddleware = (
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
       userId: string;
+      role?: UserRole;
     };
-    req.user = decoded;
+
+    req.user = {
+      userId: decoded.userId,
+      role: decoded.role,
+    };
+
     next();
   } catch (error) {
     res.status(401).json({ message: "Invalid or expired token" });
     return;
   }
+};
+
+export const roleMiddleware = (roles: UserRole[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user || !req.user.role) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: "Unauthorized access" });
+    }
+
+    next();
+  };
 };

@@ -214,7 +214,7 @@ async function clearExistingProducts() {
 function generateProductName(category: string): string {
   const adjective = faker.helpers.arrayElement(CLOTHING_ADJECTIVES);
   const style = faker.helpers.arrayElement(
-    CLOTHING_STYLES[category as keyof typeof CLOTHING_STYLES]
+    CLOTHING_STYLES[category as keyof typeof CLOTHING_STYLES] || ["Standard"]
   );
   return `${adjective} ${style} ${category.slice(0, -1)}`;
 }
@@ -262,7 +262,7 @@ function getPriceRange(category: string): { min: number; max: number } {
     Pants: { min: 1499, max: 5999 },
     Shorts: { min: 799, max: 2999 },
   };
-  return ranges[category as keyof typeof ranges];
+  return ranges[category as keyof typeof ranges] || { min: 999, max: 4999 };
 }
 
 function getImagesForAesthetic(
@@ -285,10 +285,35 @@ function getImagesForAesthetic(
   return images;
 }
 
-async function seedProducts(count: number = 300) {
+async function seedProducts(count: number = 50) {
   try {
     await clearExistingProducts();
     console.log("Starting to seed products...");
+
+    const supplier = await prisma.supplier.findFirst({
+      where: {
+        id: "cm8apxbfz0006yk033ruhp7g2",
+      },
+    });
+
+    if (!supplier) {
+      console.error(
+        "No approved supplier found. Please create and approve a supplier first."
+      );
+      return;
+    }
+
+    console.log(
+      `Using supplier: ${supplier.businessName} (ID: ${supplier.id})`
+    );
+
+    // Update supplier to be approved if not already
+    await prisma.supplier.update({
+      where: { id: supplier.id },
+      data: { approved: true },
+    });
+
+    console.log(`Supplier ${supplier.businessName} is now approved`);
 
     for (let i = 0; i < count; i++) {
       const category = faker.helpers.arrayElement(CLOTHING_CATEGORIES);
@@ -312,7 +337,9 @@ async function seedProducts(count: number = 300) {
           aesthetic: aesthetics,
           category,
           size: faker.helpers.arrayElements(SIZES, { min: 4, max: 6 }),
-          inStock: faker.datatype.boolean({ probability: 0.8 }),
+          inStock: true,
+          supplierId: supplier.id,
+          stockQuantity: faker.number.int({ min: 5, max: 50 }),
         },
       });
 
@@ -321,7 +348,9 @@ async function seedProducts(count: number = 300) {
       }
     }
 
-    console.log(`Successfully seeded ${count} products`);
+    console.log(
+      `Successfully seeded ${count} products for supplier ${supplier.businessName}`
+    );
   } catch (error) {
     console.error("Error seeding products:", error);
   } finally {

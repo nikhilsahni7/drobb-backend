@@ -14,10 +14,7 @@ const razorpayInstance = new Razorpay({
 });
 
 export class OrderController {
-  // Initiate the payment:
-  // - Calculate total amount from cart items.
-  // - Create a Razorpay order.
-  // - Create an order record in the database (with PENDING status).
+  // Updated initiate payment method with shipping and commission
   public async initiatePayment(
     req: AuthRequest,
     res: Response
@@ -27,18 +24,52 @@ export class OrderController {
       // Fetch cart items with product details
       const cart = await prisma.cart.findUnique({
         where: { userId: userId! },
-        include: { items: { include: { product: true } } },
+        include: {
+          items: {
+            include: {
+              product: {
+                include: {
+                  supplier: true,
+                },
+              },
+            },
+          },
+        },
       });
 
       if (!cart || cart.items.length === 0) {
         return res.status(400).json({ message: "Cart is empty" });
       }
 
-      // Calculate the total amount in rupees
-      let total = 0;
-      cart.items.forEach((item) => {
-        total += parseFloat(item.product.price.toString()) * item.quantity;
+      // we can do this later -right now i am doing this as 50 rs -as per distance we can calculate
+      const shippingCharge = 50; // Fixed shipping charge of ₹50
+
+      // Calculate the total amount and commission
+      let productTotal = 0;
+      let totalCommission = 0;
+
+      const orderItemsData = cart.items.map((item) => {
+        const itemPrice = parseFloat(item.product.price.toString());
+        const itemTotal = itemPrice * item.quantity;
+        productTotal += itemTotal;
+
+        // Calculate commission for this item
+        const commissionRate = item.product.supplier.commissionRate || 10;
+        const itemCommission = (itemTotal * commissionRate) / 100;
+        totalCommission += itemCommission;
+
+        return {
+          productId: item.productId,
+          supplierId: item.product.supplierId,
+          quantity: item.quantity,
+          price: item.product.price,
+          size: item.size,
+          commission: itemCommission,
+        };
       });
+
+      // Total amount including shipping
+      const total = productTotal + shippingCharge;
 
       // Create a Razorpay order (amount must be provided in paise)
       const razorpayOrder = await razorpayInstance.orders.create({
@@ -47,31 +78,34 @@ export class OrderController {
         receipt: `receipt_order_${new Date().getTime()}`,
       });
 
-      console.log(razorpayOrder);
-
       // Create an order record in the database
       const order = await prisma.order.create({
         data: {
           userId: userId!,
           total,
+          shippingCharge,
+          platformCommission: totalCommission,
           paymentIntent: razorpayOrder.id,
           status: OrderStatus.PENDING,
+          deliveredAt: null,
+          cancellationReason: null,
+          trackingNumber: null,
+          carrier: null,
+          shippedAt: null,
         },
       });
 
-      // Create order items for each cart item.
-      const orderItemsData = cart.items.map((item) => ({
+      // Create order items for each cart item
+      const orderItems = orderItemsData.map((item) => ({
+        ...item,
         orderId: order.id,
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.product.price,
-        size: item.size,
       }));
+
       await prisma.orderItem.createMany({
-        data: orderItemsData,
+        data: orderItems,
       });
 
-      // Return the Razorpay order details along with our order id to the client.
+      // Return the Razorpay order details along with our order id to the client
       return res.json({
         message: "Payment initiated",
         razorpayOrder,
@@ -79,15 +113,11 @@ export class OrderController {
       });
     } catch (error) {
       console.error("Initiate payment error:", error);
-      console.log(error);
       return res.status(500).json({ message: "Internal server error" });
     }
   }
 
-  // Verify the Razorpay signature:
-  // - Generate an HMAC signature using the Razorpay order id and payment id.
-  // - Compare with the provided signature.
-  // - If valid, mark the order as PAID and clear the user's cart.
+  // Updated verify payment to handle supplier payouts
   public async verifyPaymentSignature(
     req: AuthRequest,
     res: Response
@@ -124,7 +154,24 @@ export class OrderController {
       const updatedOrder = await prisma.order.update({
         where: { id: orderId },
         data: { status: OrderStatus.PAID },
+        include: { items: true },
       });
+
+      // Update supplier statistics
+      for (const item of updatedOrder.items) {
+        const itemTotal = parseFloat(item.price.toString()) * item.quantity;
+        const commission = parseFloat(item.commission.toString());
+
+        // Update supplier's sales and pending payout
+        await prisma.supplier.update({
+          where: { id: item.supplierId },
+          data: {
+            totalSales: { increment: itemTotal },
+            totalCommission: { increment: commission },
+            pendingPayout: { increment: itemTotal - commission },
+          },
+        });
+      }
 
       // Clear user's cart after successful payment
       const userId = req.user?.userId;
@@ -198,6 +245,109 @@ export class OrderController {
       });
     } catch (error) {
       console.error("Get orders error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }
+
+  // Cancel an order
+  public async cancelOrder(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const orderId = req.params.id;
+      const userId = req.user?.userId;
+      const { reason } = req.body;
+
+      // Check if order exists and belongs to user
+      const order = await prisma.order.findFirst({
+        where: {
+          id: orderId,
+          userId: userId!,
+          status: { in: ["PENDING", "PAID"] }, // Can only cancel if not shipped yet
+        },
+      });
+
+      if (!order) {
+        return res.status(404).json({
+          message: "Order not found or not eligible for cancellation",
+        });
+      }
+
+      // If order was paid, initiate refund through Razorpay
+      if (order.status === "PAID" && order.paymentIntent) {
+        try {
+          // i will add razoroay logic later -need to discuss here
+
+          console.log("Refund would be initiated for order:", orderId);
+        } catch (refundError) {
+          console.error("Refund error:", refundError);
+        }
+      }
+
+      // Update order status
+      const updatedOrder = await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          status: OrderStatus.CANCELLED,
+          cancellationReason: reason || "User requested cancellation",
+        },
+      });
+
+      // Restore product stock
+      const orderItems = await prisma.orderItem.findMany({
+        where: { orderId },
+        include: { product: true },
+      });
+
+      for (const item of orderItems) {
+        await prisma.product.update({
+          where: { id: item.productId },
+          data: {
+            stockQuantity: {
+              increment: item.quantity,
+            },
+          },
+        });
+      }
+
+      return res.json({
+        message: "Order cancelled successfully",
+        order: updatedOrder,
+      });
+    } catch (error) {
+      console.error("Cancel order error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }
+
+  // Get order details
+  public async getOrderDetails(
+    req: AuthRequest,
+    res: Response
+  ): Promise<Response> {
+    try {
+      const orderId = req.params.id;
+      const userId = req.user?.userId;
+
+      const order = await prisma.order.findFirst({
+        where: {
+          id: orderId,
+          userId: userId!,
+        },
+        include: {
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+
+      return res.json({ order });
+    } catch (error) {
+      console.error("Get order details error:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   }

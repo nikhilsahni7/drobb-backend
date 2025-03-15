@@ -4,6 +4,13 @@ export interface SignupInput {
   name: string;
   gender: "MALE" | "FEMALE" | "NON_BINARY" | "OTHER";
   birthDate: Date;
+  role?: "USER" | "SUPPLIER";
+}
+
+export interface SupplierSignupInput extends SignupInput {
+  businessName: string;
+  address: string;
+  phone: string;
 }
 
 export interface LoginInput {
@@ -29,6 +36,39 @@ export interface ProfileUpdateInput {
 export interface PreferenceUpdateInput {
   aesthetics?: AestheticType[];
   clothingTypes?: string[];
+}
+
+export interface ReturnRequestInput {
+  orderId: string;
+  reason:
+    | "CHANGED_MIND"
+    | "WRONG_SIZE"
+    | "FAULTY_PRODUCT"
+    | "DAMAGED_PRODUCT"
+    | "OTHER";
+  description?: string;
+}
+
+export interface VerifyReturnInput {
+  returnId: string;
+  isFaulty: boolean;
+}
+
+export interface SupplierProductInput {
+  name: string;
+  description: string;
+  price: number;
+  images: string[];
+  aesthetic: AestheticType[];
+  category: string;
+  size: string[];
+  stockQuantity: number;
+}
+
+export interface AdminPayoutInput {
+  supplierId: string;
+  amount: number;
+  description?: string;
 }
 
 export type AestheticType =

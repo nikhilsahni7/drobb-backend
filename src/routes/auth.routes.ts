@@ -27,4 +27,12 @@ router.post(
   })
 );
 
+// Admin creation endpoint
+router.post(
+  "/create-admin",
+  asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    await authController.createAdmin(req, res);
+  })
+);
+
 export default router;

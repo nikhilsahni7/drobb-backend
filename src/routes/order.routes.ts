@@ -2,9 +2,11 @@ import { Router } from "express";
 import asyncHandler from "express-async-handler";
 import { OrderController } from "../controllers/order.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
+import { PrismaClient } from "@prisma/client";
 
 const router = Router();
 const orderController = new OrderController();
+const prisma = new PrismaClient();
 
 router.use(authMiddleware);
 
@@ -29,6 +31,22 @@ router.get(
   "/",
   asyncHandler(async (req, res) => {
     await orderController.getOrders(req, res);
+  })
+);
+
+// Cancel an order
+router.patch(
+  "/:id/cancel",
+  asyncHandler(async (req, res) => {
+    await orderController.cancelOrder(req, res);
+  })
+);
+
+// Get order details
+router.get(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    await orderController.getOrderDetails(req, res);
   })
 );
 

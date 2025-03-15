@@ -46,7 +46,7 @@ export class RatingController {
       const userId = req.user?.userId;
 
       const ratings = await prisma.rating.findMany({
-        where: { userId: userId! },
+        where: { userId: userId!  },
         orderBy: { createdAt: "desc" },
       });
 

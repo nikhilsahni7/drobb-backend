@@ -13,6 +13,7 @@ model User {
   email         String    @unique
   googleId      String?   @unique
   password      String?
+  role          UserRole  @default(USER)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -25,6 +26,8 @@ model User {
   cart          Cart?
   orders        Order[]
   ratings       Rating[]
+  supplier      Supplier?
+  returns       Return[]
 
   @@map("users")
 }
@@ -84,10 +87,13 @@ model Product {
   category    String
   size        String[]
   inStock     Boolean   @default(true)
+  stockQuantity Int     @default(0)
+  supplierId  String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   // Relations
+  supplier    Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   matches     Match[]
   cartItems   CartItem[]
   orderItems  OrderItem[]
@@ -129,13 +135,21 @@ model Order {
   userId          String
   status          OrderStatus @default(PENDING)
   total           Decimal
+  shippingCharge  Decimal   @default(0)
+  platformCommission Decimal @default(0)
   paymentIntent   String?   // For payment gateway integration
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  deliveredAt     DateTime? 
+  cancellationReason String? 
+  trackingNumber  String?   
+  carrier         String?
+  shippedAt       DateTime? 
 
   // Relations
   user            User      @relation(fields: [userId], references: [id])
   items           OrderItem[]
+  returns         Return[]
 
   @@map("orders")
 }
@@ -144,9 +158,11 @@ model OrderItem {
   id          String    @id @default(cuid())
   orderId     String
   productId   String
+  supplierId  String
   quantity    Int
   price       Decimal   // Price at time of purchase
   size        String
+  commission  Decimal   // Commission amount for this item
   
   // Relations
   order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -181,6 +197,65 @@ model Rating {
   @@map("ratings")
 }
 
+model Supplier {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  businessName      String
+  address           String
+  phone             String
+  approved          Boolean   @default(false)
+  commissionRate    Float     @default(10.0) // Default 10%
+  totalSales        Decimal   @default(0)
+  totalCommission   Decimal   @default(0)
+  pendingPayout     Decimal   @default(0)
+  lastPayoutDate    DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products          Product[]
+  payouts           Payout[]
+
+  @@map("suppliers")
+}
+
+model Return {
+  id              String        @id @default(cuid())
+  orderId         String
+  userId          String
+  reason          ReturnReason
+  description     String?
+  status          ReturnStatus  @default(PENDING)
+  returnCharge    Decimal       @default(0)
+  isFaulty        Boolean       @default(false)
+  faultyVerified  Boolean?      // null = not checked, true/false = verified result
+  refundAmount    Decimal       @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  order           Order         @relation(fields: [orderId], references: [id])
+  user            User          @relation(fields: [userId], references: [id])
+
+  @@map("returns")
+}
+
+model Payout {
+  id              String        @id @default(cuid())
+  supplierId      String
+  amount          Decimal
+  status          PayoutStatus  @default(PENDING)
+  description     String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  supplier        Supplier      @relation(fields: [supplierId], references: [id])
+
+  @@map("payouts")
+}
+
 enum Gender {
   MALE
   FEMALE
@@ -201,4 +276,31 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+}
+
+enum UserRole {
+  USER
+  SUPPLIER
+  ADMIN
+}
+
+enum ReturnReason {
+  CHANGED_MIND
+  WRONG_SIZE
+  FAULTY_PRODUCT
+  DAMAGED_PRODUCT
+  OTHER
+}
+
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REFUNDED
+}
+
+enum PayoutStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }
