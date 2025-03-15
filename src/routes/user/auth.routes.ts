@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import asyncHandler from "express-async-handler";
-import { AuthController } from "../controllers/auth.controller";
+import { AuthController } from "../../controllers/user/auth.controller";
 import { Router } from "express";
 
 const router = Router();

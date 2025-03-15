@@ -1,7 +1,7 @@
 import type { Response } from "express";
 import { PrismaClient, ReturnStatus, ReturnReason } from "@prisma/client";
-import type { AuthRequest } from "../middleware/auth.middleware";
-import type { ReturnRequestInput } from "../types/types";
+import type { AuthRequest } from "../../middleware/auth.middleware";
+import type { ReturnRequestInput } from "../../types/types";
 
 const prisma = new PrismaClient();
 

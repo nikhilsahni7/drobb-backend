@@ -1,6 +1,6 @@
 import type { Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import type { AuthRequest } from "../middleware/auth.middleware";
+import type { AuthRequest } from "../../middleware/auth.middleware";
 
 const prisma = new PrismaClient();
 
@@ -46,7 +46,7 @@ export class RatingController {
       const userId = req.user?.userId;
 
       const ratings = await prisma.rating.findMany({
-        where: { userId: userId!  },
+        where: { userId: userId! },
         orderBy: { createdAt: "desc" },
       });
 

@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import type { AestheticType } from "../types/types";
+import type { AestheticType } from "../../types/types";
 
 const prisma = new PrismaClient();
 

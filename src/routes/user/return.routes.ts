@@ -1,7 +1,7 @@
 import { Router } from "express";
 import asyncHandler from "express-async-handler";
-import { ReturnController } from "../controllers/return.controller";
-import { authMiddleware } from "../middleware/auth.middleware";
+import { ReturnController } from "../../controllers/user/return.controller";
+import { authMiddleware } from "../../middleware/auth.middleware";
 
 const router = Router();
 const returnController = new ReturnController();

@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { MatchController } from "../controllers/match.controller";
-import { authMiddleware } from "../middleware/auth.middleware";
+import { MatchController } from "../../controllers/user/match.controller";
+import { authMiddleware } from "../../middleware/auth.middleware";
 import asyncHandler from "express-async-handler";
 
 const router = Router();

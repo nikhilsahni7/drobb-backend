@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { ProductController } from "../controllers/product.controller";
+import { ProductController } from "../../controllers/user/product.controller";
 import asyncHandler from "express-async-handler";
 
 const router = Router();

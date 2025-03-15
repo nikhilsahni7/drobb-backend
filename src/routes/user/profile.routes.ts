@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { ProfileController } from "../controllers/profile.controller";
-import { authMiddleware } from "../middleware/auth.middleware";
+import { ProfileController } from "../../controllers/user/profile.controller";
+import { authMiddleware } from "../../middleware/auth.middleware";
 import asyncHandler from "express-async-handler";
 
 const router = Router();

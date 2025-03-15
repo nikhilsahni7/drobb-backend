@@ -1,6 +1,6 @@
 import type { Response } from "express";
 import { PrismaClient, OrderStatus } from "@prisma/client";
-import type { AuthRequest } from "../middleware/auth.middleware";
+import type { AuthRequest } from "../../middleware/auth.middleware";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import dotenv from "dotenv";

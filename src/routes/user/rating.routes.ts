@@ -1,7 +1,7 @@
 import { Router } from "express";
 import asyncHandler from "express-async-handler";
-import { RatingController } from "../controllers/rating.controller";
-import { authMiddleware } from "../middleware/auth.middleware";
+import { RatingController } from "../../controllers/user/rating.controller";
+import { authMiddleware } from "../../middleware/auth.middleware";
 
 const router = Router();
 const ratingController = new RatingController();

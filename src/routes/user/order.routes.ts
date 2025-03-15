@@ -1,7 +1,7 @@
 import { Router } from "express";
 import asyncHandler from "express-async-handler";
-import { OrderController } from "../controllers/order.controller";
-import { authMiddleware } from "../middleware/auth.middleware";
+import { OrderController } from "../../controllers/user/order.controller";
+import { authMiddleware } from "../../middleware/auth.middleware";
 import { PrismaClient } from "@prisma/client";
 
 const router = Router();

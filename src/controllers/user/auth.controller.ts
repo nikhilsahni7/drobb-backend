@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, UserRole } from "@prisma/client";
 import { Resend } from "resend";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -8,8 +8,7 @@ import type {
   LoginInput,
   VerifyOTPInput,
   SupplierSignupInput,
-} from "../types/types";
-import { UserRole } from "@prisma/client";
+} from "../../types/types";
 
 const prisma = new PrismaClient();
 const resend = new Resend(process.env.RESEND_API_KEY);
